@@ -44,9 +44,9 @@ class UnalignedDataset(BaseDataset):
         except Exception as e:
             print(f"Error opening image {path}: {e}")
             return None 
-               
-    def __getitem__(self, index):
-        """Return a data point and its metadata information.
+    
+def __getitem__(self, index):
+    """Return a data point and its metadata information.
 
         Parameters:
             index (int)      -- a random integer for data indexing
@@ -57,6 +57,53 @@ class UnalignedDataset(BaseDataset):
             A_paths (str)    -- image paths
             B_paths (str)    -- image paths
         """
+    """Retry until both A and B images are valid; when a failure happens,
+    change BOTH A and B to avoid sticking to one side."""
+    max_retry = 10  # tune as needed
+
+    # Initial indices
+    a_idx = index % self.A_size
+    b_idx = (index % self.B_size) if self.opt.serial_batches else random.randint(0, self.B_size - 1)
+
+    for attempt in range(max_retry):
+        A_path = self.A_paths[a_idx]
+        B_path = self.B_paths[b_idx]
+
+        A_img = self.myopen(A_path)
+        B_img = self.myopen(B_path)
+
+        if A_img is not None and B_img is not None:
+            A = self.transform_A(A_img)
+            B = self.transform_B(B_img)
+            return {"A": A, "B": B, "A_paths": A_path, "B_paths": B_path}
+
+        # If either side failed, CHANGE BOTH sides for the next attempt
+        # Advance deterministically for serial_batches, otherwise resample randomly.
+        if self.opt.serial_batches:
+            a_idx = (a_idx + 1) % self.A_size
+            b_idx = (b_idx + 1) % self.B_size
+        else:
+            a_idx = random.randint(0, self.A_sizSe - 1)
+            b_idx = random.randint(0, self.B_size - 1)
+
+    # If we still couldn't get a valid pair, fail clearly (prevents silent data starvation)
+    raise RuntimeError(
+        f"[Data] Could not fetch a valid A/B pair after {max_retry} attempts. "
+        f"Consider pre-filtering corrupted files or increasing max_retry."
+    )
+           
+    """ def __getitem__(self, index):
+        Return a data point and its metadata information.
+
+        Parameters:
+            index (int)      -- a random integer for data indexing
+
+        Returns a dictionary that contains A, B, A_paths and B_paths
+            A (tensor)       -- an image in the input domain
+            B (tensor)       -- its corresponding image in the target domain
+            A_paths (str)    -- image paths
+            B_paths (str)    -- image paths
+        
         A_path = self.A_paths[index % self.A_size]  # make sure index is within then range
         if self.opt.serial_batches:  # make sure index is within then range
             index_B = index % self.B_size
@@ -69,7 +116,7 @@ class UnalignedDataset(BaseDataset):
         A = self.transform_A(A_img)
         B = self.transform_B(B_img)
 
-        return {"A": A, "B": B, "A_paths": A_path, "B_paths": B_path}
+        return {"A": A, "B": B, "A_paths": A_path, "B_paths": B_path} """
 
     def __len__(self):
         """Return the total number of images in the dataset.
