@@ -153,7 +153,7 @@ class UnalignedDataset(BaseDataset):
             B_img = self._safe_open_rgb(B_path)
 
             if A_img is not None and B_img is not None:
-                augment=T.compose([T.ColorJitter(brightness=0.45, contrast=0.45, saturation=0.35, hue=0.1)]) # data augmentation
+                augment=T.Compose([T.ColorJitter(brightness=0.45, contrast=0.45, saturation=0.35, hue=0.1)]) # data augmentation
                 A_img = augment(A_img)
                 B_img = augment(B_img)                   
                 A = self.transform_A(A_img)
