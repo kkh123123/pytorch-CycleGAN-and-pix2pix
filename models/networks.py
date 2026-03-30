@@ -1,3 +1,4 @@
+import torchvision.models as models
 import torch
 import torch.nn as nn
 from torch.nn import init
@@ -320,6 +321,47 @@ class GANLoss(nn.Module):
         return loss
 
 
+class VGGLoss(nn.Module):
+    def __init__(self):
+        super(VGGLoss, self).__init__()
+        vgg = models.vgg16(pretrained=True).features
+        self.slice1 = nn.Sequential()
+        self.slice2 = nn.Sequential()
+        self.slice3 = nn.Sequential()
+        self.slice4 = nn.Sequential()
+        for x in range(4):
+            self.slice1.add_module(str(x), vgg[x])
+        for x in range(4, 9):
+            self.slice2.add_module(str(x), vgg[x])
+        for x in range(9, 16):
+            self.slice3.add_module(str(x), vgg[x])
+        for x in range(16, 23):
+            self.slice4.add_module(str(x), vgg[x])
+            
+        for param in self.parameters():
+            param.requires_grad = False
+            
+       
+        self.criterion = nn.L1Loss()
+
+    def forward(self, x, y):
+        
+        h_x1 = self.slice1(x)
+        h_y1 = self.slice1(y)
+        h_x2 = self.slice2(h_x1)
+        h_y2 = self.slice2(h_y1)
+        h_x3 = self.slice3(h_x2)
+        h_y3 = self.slice3(h_y2)
+        h_x4 = self.slice4(h_x3)
+        h_y4 = self.slice4(h_y3)
+
+        loss = self.criterion(h_x1, h_y1) + \
+               self.criterion(h_x2, h_y2) + \
+               self.criterion(h_x3, h_y3) + \
+               self.criterion(h_x4, h_y4)
+        return loss
+
+        
 def cal_gradient_penalty(netD, real_data, fake_data, device, type="mixed", constant=1.0, lambda_gp=10.0):
     """Calculate the gradient penalty loss, used in WGAN-GP paper https://arxiv.org/abs/1704.00028
 
