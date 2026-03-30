@@ -159,6 +159,7 @@ class CycleGANModel(BaseModel):
         lambda_idt = self.opt.lambda_identity
         lambda_A = self.opt.lambda_A
         lambda_B = self.opt.lambda_B
+        lambda_perceptual = 0.5
         # Identity loss
         if lambda_idt > 0:
             # G_A should be identity if real_B is fed: ||G_A(B) - B||
@@ -180,8 +181,8 @@ class CycleGANModel(BaseModel):
         # Backward cycle loss || G_A(G_B(B)) - B||
         self.loss_cycle_B = self.criterionCycle(self.rec_B, self.real_B) * lambda_B
         # Perceptual loss
-        self.loss_perceptual_A = self.criterionVGG(self.rec_A, self.real_A) * self.lambda_perceptual
-        self.loss_perceptual_B = self.criterionVGG(self.rec_B, self.real_B) * self.lambda_perceptual
+        self.loss_perceptual_A = self.criterionVGG(self.rec_A, self.real_A) * lambda_perceptual
+        self.loss_perceptual_B = self.criterionVGG(self.rec_B, self.real_B) * lambda_perceptual
         # combined loss and calculate gradients
         self.loss_G = self.loss_G_A + self.loss_G_B + self.loss_cycle_A + self.loss_cycle_B + self.loss_idt_A + self.loss_idt_B + self.loss_perceptual_A + self.loss_perceptual_B
         self.loss_G.backward()
