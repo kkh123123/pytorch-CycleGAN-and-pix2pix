@@ -343,11 +343,15 @@ class VGGLoss(nn.Module):
             
        
         self.criterion = nn.L1Loss()
-
+        self.register_buffer('mean', torch.tensor([0.485, 0.456, 0.406]).view(1, 3, 1, 1))
+        self.register_buffer('std', torch.tensor([0.229, 0.224, 0.225]).view(1, 3, 1, 1))
     def forward(self, x, y):
-        
-        h_x1 = self.slice1(x)
-        h_y1 = self.slice1(y)
+        x_scaled = (x + 1.0) / 2.0
+        y_scaled = (y + 1.0) / 2.0
+        x_norm = (x_scaled - self.mean) / self.std
+        y_norm = (y_scaled - self.mean) / self.std
+        h_x1 = self.slice1(x_norm)
+        h_y1 = self.slice1(y_norm)
         h_x2 = self.slice2(h_x1)
         h_y2 = self.slice2(h_y1)
         h_x3 = self.slice3(h_x2)
