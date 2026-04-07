@@ -509,9 +509,12 @@ class ResnetBlock(nn.Module):
 
     def forward(self, x):
         """Forward function (with skip connections)"""
-        convout = x + self.conv_block(x)  # add skip connections
-        cbamout= self.cbam(convout)
-        return cbamout
+        #convout = x + self.conv_block(x)  # add skip connections
+        #cbamout= self.cbam(convout)
+        a=self.conv_block(x)
+        a= self.cbam(a)
+        convout=x+a
+        return convout
 
 
 class UnetGenerator(nn.Module):
